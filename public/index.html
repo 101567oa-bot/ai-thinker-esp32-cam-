@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESP32-CAM Photo Capture</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+:root {
+    --primary: #00d4ff;
+    --primary-dark: #0099cc;
+    --dark: #0a1929;
+    --darker: #071422;
+    --light: #f8f9fa;
+    --gray: #6c757d;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+}
+
+body {
+    background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+    color: var(--light);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: rgba(10, 25, 41, 0.8);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.header h1 {
+    font-size: 2.8rem;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, var(--primary), #00fff7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.header p {
+    color: var(--gray);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto 20px;
+}
+
+.status-bar {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.status-item {
+    padding: 12px 25px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-icon {
+    font-size: 1.2rem;
+}
+
+.status-online { color: var(--success); }
+.status-offline { color: var(--danger); }
+
+/* Main Content */
+.main-content {
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 30px;
+    margin-bottom: 40px;
+}
+
+@media (max-width: 1024px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Capture Panel */
+.capture-panel {
+    background: rgba(10, 25, 41, 0.8);
+    border-radius: 20px;
+    padding: 30px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.panel-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-header i {
+    font-size: 1.8rem;
+    color: var(--primary);
+}
+
+.panel-header h2 {
+    font-size: 1.8rem;
+    color: var(--light);
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.btn {
+    padding: 18px 25px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 212, 255, 0.4);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--light);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-3px);
+}
+
+.btn i {
+    font-size: 1.3rem;
+}
+
+.camera-info {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 30px;
+    border-left: 4px solid var(--primary);
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-item:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    color: var(--gray);
+}
+
+.info-value {
+    color: var(--light);
+    font-weight: 600;
+}
+
+/* Gallery Panel */
+.gallery-panel {
+    background: rgba(10, 25, 41, 0.8);
+    border-radius: 20px;
+    padding: 30px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(10px);
+    height: fit-content;
+}
+
+.gallery-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.gallery-stats {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.stat-badge {
+    background: var(--primary);
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.gallery-grid::-webkit-scrollbar {
+    width: 6px;
+}
+
+.gallery-grid::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.gallery-grid::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.gallery-item {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.gallery-item:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(220, 53, 69, 0.9);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.gallery-item:hover .delete-btn {
+    opacity: 1;
+}
+
+.delete-btn:hover {
+    background: var(--danger);
+}
+
+/* Preview Modal */
+.preview-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal-content {
+    max-width: 90%;
+    max-height: 90%;
+    position: relative;
+}
+
+.modal-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 15px;
+}
+
+.close-modal {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: var(--danger);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Logs Panel */
+.logs-panel {
+    background: rgba(10, 25, 41, 0.8);
+    border-radius: 20px;
+    padding: 25px;
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    backdrop-filter: blur(10px);
+}
+
+.logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logs-container {
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.logs-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.logs-container::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+}
+
+.logs-container::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 10px;
+}
+
+.log-entry {
+    padding: 10px 15px;
+    margin-bottom: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.log-entry i {
+    font-size: 0.9rem;
+}
+
+.log-success { border-left-color: var(--success); }
+.log-error { border-left-color: var(--danger); }
+.log-info { border-left-color: var(--primary); }
+
+/* Loading Animation */
+.loading {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    padding: 15px 25px;
+    background: rgba(10, 25, 41, 0.95);
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transform: translateX(150%);
+    transition: transform 0.3s ease;
+    z-index: 1001;
+    max-width: 400px;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast-success { border-left-color: var(--success); }
+.toast-error { border-left-color: var(--danger); }
+
+.toast i {
+    font-size: 1.5rem;
+}
+
+.toast-content h4 {
+    margin-bottom: 5px;
+    font-size: 1.1rem;
+}
+
+.toast-content p {
+    font-size: 0.9rem;
+    color: var(--gray);
+}
+
+.close-toast {
+    background: none;
+    border: none;
+    color: var(--gray);
+    cursor: pointer;
+    font-size: 1.2rem;
+    margin-left: auto;
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading" id="loading">
+    <div class="spinner"></div>
+    <h3>Processing Photo...</h3>
+    <p>Please wait while we capture your image</p>
+</div>
+
+<!-- Preview Modal -->
+<div class="preview-modal" id="previewModal">
+    <div class="modal-content">
+        <img id="previewImage" src="" alt="Preview">
+        <button class="close-modal" onclick="closePreview()">&times;</button>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toastContainer"></div>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1><i class="fas fa-camera"></i> هلا و مرحبا </h1>
+        <p>High-quality photo capture system with professional interface</p>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <i class="fas fa-wifi status-icon" id="wifiIcon"></i>
+                <div>
+                    <div class="info-label">Connection</div>
+                    <div class="info-value" id="connectionStatus">Disconnected</div>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-camera status-icon" id="cameraIcon"></i>
+                <div>
+                    <div class="info-label">Camera</div>
+                    <div class="info-value" id="cameraStatus">Disconnected</div>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-images status-icon"></i>
+                <div>
+                    <div class="info-label">Photos</div>
+                    <div class="info-value" id="photoCount">0</div>
+                </div>
+            </div>
+            
+            <div class="status-item">
+                <i class="fas fa-microchip status-icon"></i>
+                <div>
+                    <div class="info-label">Resolution</div>
+                    <div class="info-value">1600×1200</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left: Capture Panel -->
+        <div class="capture-panel">
+            <div class="panel-header">
+                <i class="fas fa-sliders-h"></i>
+                <h2>Capture Controls</h2>
+            </div>
+            
+            <div class="controls-grid">
+                <button class="btn btn-primary" onclick="capturePhoto()">
+                    <i class="fas fa-camera"></i>
+                    Capture Photo
+                </button>
+                
+                <button class="btn btn-secondary" onclick="testFlash()">
+                    <i class="fas fa-lightbulb"></i>
+                    Test Flash
+                </button>
+                
+                <button class="btn btn-secondary" onclick="pingCamera()">
+                    <i class="fas fa-satellite-dish"></i>
+                    Ping Camera
+                </button>
+                
+                <button class="btn btn-secondary" onclick="clearGallery()">
+                    <i class="fas fa-trash-alt"></i>
+                    Clear All
+                </button>
+            </div>
+            
+            <div class="camera-info">
+                <h3 style="margin-bottom: 15px; color: var(--primary);">
+                    <i class="fas fa-info-circle"></i> Camera Information
+                </h3>
+                <div class="info-item">
+                    <span class="info-label">Resolution:</span>
+                    <span class="info-value">1600 × 1200 (UXGA)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Quality:</span>
+                    <span class="info-value">Highest (5/63)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Format:</span>
+                    <span class="info-value">JPEG</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Storage:</span>
+                    <span class="info-value" id="storageInfo">-- MB</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Gallery Panel -->
+        <div class="gallery-panel">
+            <div class="gallery-header">
+                <h2 style="color: var(--light);">
+                    <i class="fas fa-images"></i> Photo Gallery
+                </h2>
+                <div class="gallery-stats">
+                    <span class="stat-badge" id="photoCounter">0 photos</span>
+                    <button class="btn-secondary" style="padding: 8px 15px;" onclick="downloadAll()">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="gallery-grid" id="galleryGrid">
+                <!-- Photos will appear here -->
+                <div class="gallery-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--gray);">
+                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                    <h3>No Photos Yet</h3>
+                    <p>Click "Capture Photo" to take your first image</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logs Panel -->
+    <div class="logs-panel">
+        <div class="logs-header">
+            <h2 style="color: var(--light);">
+                <i class="fas fa-terminal"></i> System Logs
+            </h2>
+            <button class="btn-secondary" style="padding: 8px 15px;" onclick="clearLogs()">
+                <i class="fas fa-broom"></i> Clear Logs
+            </button>
+        </div>
+        
+        <div class="logs-container" id="logsContainer">
+            <div class="log-entry log-info">
+                <i class="fas fa-info-circle"></i>
+                <span>System initialized. Waiting for camera connection...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// التحقق من التوكن
+const token = sessionStorage.getItem("accessToken");
+if (!token) {
+    alert("Please login first");
+    window.location.href = "login.html";
+}
+
+// متغيرات النظام
+let ws = null;
+let cameraConnected = false;
+let photoCount = 0;
+let photos = [];
+let lastCaptureTime = 0;
+
+// عناصر DOM
+const connectionStatus = document.getElementById('connectionStatus');
+const cameraStatus = document.getElementById('cameraStatus');
+const photoCountEl = document.getElementById('photoCount');
+const photoCounter = document.getElementById('photoCounter');
+const wifiIcon = document.getElementById('wifiIcon');
+const cameraIcon = document.getElementById('cameraIcon');
+const galleryGrid = document.getElementById('galleryGrid');
+const logsContainer = document.getElementById('logsContainer');
+const loadingScreen = document.getElementById('loading');
+const previewModal = document.getElementById('previewModal');
+const previewImage = document.getElementById('previewImage');
+const storageInfo = document.getElementById('storageInfo');
+
+// إضافة سجل للنظام
+function addLog(message, type = 'info') {
+    const logEntry = document.createElement('div');
+    logEntry.className = `log-entry log-${type}`;
+    
+    let icon = 'info-circle';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'exclamation-circle';
+    
+    logEntry.innerHTML = `
+        <i class="fas fa-${icon}"></i>
+        <span>${message}</span>
+    `;
+    
+    logsContainer.appendChild(logEntry);
+    logsContainer.scrollTop = logsContainer.scrollHeight;
+}
+
+// إظهار toast notification
+function showToast(title, message, type = 'info', duration = 5000) {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    
+    let icon = 'info-circle';
+    if (type === 'success') icon = 'check-circle';
+    if (type === 'error') icon = 'exclamation-circle';
+    
+    toast.innerHTML = `
+        <i class="fas fa-${icon}"></i>
+        <div class="toast-content">
+            <h4>${title}</h4>
+            <p>${message}</p>
+        </div>
+        <button class="close-toast" onclick="this.parentElement.classList.remove('show')">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.getElementById('toastContainer').appendChild(toast);
+    
+    // إظهار Toast
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 10);
+    
+    // إخفاء Toast بعد المدة المحددة
+    if (duration > 0) {
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, duration);
+    }
+}
+
+// تحديث حالة الاتصال
+function updateConnectionStatus() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        connectionStatus.textContent = 'Connected';
+        connectionStatus.style.color = '#28a745';
+        wifiIcon.className = 'fas fa-wifi status-icon status-online';
+    } else {
+        connectionStatus.textContent = 'Disconnected';
+        connectionStatus.style.color = '#dc3545';
+        wifiIcon.className = 'fas fa-wifi status-icon status-offline';
+    }
+    
+    if (cameraConnected) {
+        cameraStatus.textContent = 'Connected';
+        cameraStatus.style.color = '#28a745';
+        cameraIcon.className = 'fas fa-camera status-icon status-online';
+    } else {
+        cameraStatus.textContent = 'Disconnected';
+        cameraStatus.style.color = '#dc3545';
+        cameraIcon.className = 'fas fa-camera status-icon status-offline';
+    }
+    
+    photoCountEl.textContent = photoCount;
+    photoCounter.textContent = `${photoCount} photo${photoCount !== 1 ? 's' : ''}`;
+    
+    // تحديث معلومات التخزين
+    const totalSize = photos.reduce((sum, photo) => sum + (photo.size || 0), 0);
+    const sizeInMB = (totalSize / (1024 * 1024)).toFixed(2);
+    storageInfo.textContent = `${sizeInMB} MB`;
+}
+
+// الاتصال بـ WebSocket
+function connectWebSocket() {
+    if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+        return;
+    }
+    
+    addLog('Connecting to WebSocket server...', 'info');
+    
+    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+const wsUrl = `${protocol}//${location.host}/?token=${token}`;
+
+
+    ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
+    
+    ws.onopen = () => {
+        addLog('✅ WebSocket connected successfully', 'success');
+        showToast('Connected', 'Successfully connected to server', 'success');
+        updateConnectionStatus();
+        ws.send(JSON.stringify({ type: 'browser' }));
+    };
+    
+    ws.onclose = (event) => {
+        addLog(`❌ WebSocket disconnected: ${event.code}`, 'error');
+        updateConnectionStatus();
+        cameraConnected = false;
+        updateConnectionStatus();
+        
+        // إعادة الاتصال بعد 3 ثوان
+        setTimeout(connectWebSocket, 3000);
+    };
+    
+    ws.onerror = (error) => {
+        addLog('💥 WebSocket connection error', 'error');
+        showToast('Connection Error', 'Failed to connect to server', 'error');
+    };
+    
+    ws.onmessage = (event) => {
+        // معالجة البيانات الثنائية (صور)
+        if (event.data instanceof ArrayBuffer) {
+    processCapturedPhoto(event.data);
+    hideLoading(); // ← الحل هنا
+    return;
+}
+        
+        // معالجة الرسائل النصية
+        try {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'system') {
+                if (data.message.includes('Camera connected')) {
+                    cameraConnected = true;
+                    addLog('📡 Camera connected successfully', 'success');
+                    showToast('Camera Connected', 'ESP32 camera is now connected', 'success');
+                } else if (data.message.includes('Camera disconnected')) {
+                    cameraConnected = false;
+                    addLog('📡 Camera disconnected', 'error');
+                    showToast('Camera Disconnected', 'ESP32 camera was disconnected', 'error');
+                }
+                updateConnectionStatus();
+            }
+            else if (data.type === 'connection_info') {
+                cameraConnected = data.cameraConnected;
+                addLog(cameraConnected ? '📡 Camera is connected' : '📡 Camera is not connected', 'info');
+                updateConnectionStatus();
+            }
+            else if (data.type === 'photo_sent') {
+                addLog(`✅ Photo sent successfully (${(data.size / 1024).toFixed(2)} KB)`, 'success');
+                hideLoading();
+                showToast('Photo Captured', 'Image captured and sent successfully', 'success');
+            }
+            else if (data.type === 'flash_tested') {
+                addLog('🔦 Flash tested successfully', 'success');
+                showToast('Flash Tested', 'Camera flash tested successfully', 'success');
+            }
+            else if (data.type === 'pong') {
+                addLog(`📡 Camera ping response: RSSI ${data.rssi} dBm`, 'info');
+            }
+            
+        } catch (error) {
+            addLog('❌ Error parsing message', 'error');
+        }
+    };
+}
+
+// معالجة الصورة الملتقطة
+function processCapturedPhoto(arrayBuffer) {
+    const blob = new Blob([arrayBuffer], { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+    const timestamp = new Date();
+    const size = arrayBuffer.byteLength;
+    
+    // إضافة الصورة للمصفوفة
+    const photo = {
+        id: Date.now(),
+        url: url,
+        blob: blob,
+        timestamp: timestamp,
+        size: size
+    };
+    
+    photos.unshift(photo);
+    photoCount = photos.length;
+    
+    // إضافة الصورة للGallery
+    addPhotoToGallery(photo);
+    
+    // تحديث الواجهة
+    updateConnectionStatus();
+    
+    // إخفاء شاشة التحميل
+    setTimeout(() => {
+        hideLoading();
+    }, 500);
+}
+
+// إضافة صورة للGallery
+function addPhotoToGallery(photo) {
+    // إزالة placeholder إذا كان موجوداً
+    const placeholder = galleryGrid.querySelector('.gallery-placeholder');
+    if (placeholder) {
+        placeholder.remove();
+    }
+    
+    const galleryItem = document.createElement('div');
+    galleryItem.className = 'gallery-item';
+    galleryItem.dataset.id = photo.id;
+    
+    galleryItem.innerHTML = `
+        <img src="${photo.url}" alt="Captured photo ${photo.id}" 
+             onclick="previewPhoto('${photo.id}')">
+        <button class="delete-btn" onclick="deletePhoto(${photo.id})">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    // إضافة في البداية
+    galleryGrid.insertBefore(galleryItem, galleryGrid.firstChild);
+}
+
+// حذف صورة
+function deletePhoto(id) {
+    const index = photos.findIndex(p => p.id === id);
+    if (index !== -1) {
+        // تحرير الذاكرة
+        URL.revokeObjectURL(photos[index].url);
+        
+        // إزالة من المصفوفة
+        photos.splice(index, 1);
+        photoCount = photos.length;
+        
+        // إزالة من الواجهة
+        const item = document.querySelector(`.gallery-item[data-id="${id}"]`);
+        if (item) {
+            item.remove();
+        }
+        
+        // إظهار placeholder إذا لم تبقى صور
+        if (photoCount === 0) {
+            galleryGrid.innerHTML = `
+                <div class="gallery-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--gray);">
+                    <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                    <h3>No Photos Yet</h3>
+                    <p>Click "Capture Photo" to take your first image</p>
+                </div>
+            `;
+        }
+        
+        addLog(`🗑️ Photo deleted`, 'info');
+        updateConnectionStatus();
+    }
+}
+
+// معاينة صورة
+function previewPhoto(id) {
+    const photo = photos.find(p => p.id === id);
+    if (photo) {
+        previewImage.src = photo.url;
+        previewModal.style.display = 'flex';
+    }
+}
+
+// إغلاق المعاينة
+function closePreview() {
+    previewModal.style.display = 'none';
+}
+
+// إظهار شاشة التحميل
+function showLoading() {
+    loadingScreen.style.display = 'flex';
+}
+
+// إخفاء شاشة التحميل
+function hideLoading() {
+    loadingScreen.style.display = 'none';
+}
+
+// ===== وظائف التحكم =====
+function capturePhoto() {
+    if (!cameraConnected) {
+        showToast('Camera Error', 'Camera is not connected', 'error');
+        addLog('❌ Cannot capture: Camera not connected', 'error');
+        return;
+    }
+    
+    // منع التقاط صور متتالية بسرعة
+    const now = Date.now();
+    if (now - lastCaptureTime < 3000) {
+        showToast('Wait', 'Please wait before capturing another photo', 'info');
+        return;
+    }
+    
+    lastCaptureTime = now;
+    
+    // إظهار شاشة التحميل
+    showLoading();
+    
+    // إرسال أمر التقاط
+    const command = { cmd: 'capture' };
+    ws.send(JSON.stringify(command));
+    
+    addLog('📸 Capture command sent to camera', 'info');
+    showToast('Capturing', 'Taking photo...', 'info');
+}
+
+function testFlash() {
+    if (!cameraConnected) {
+        showToast('Camera Error', 'Camera is not connected', 'error');
+        return;
+    }
+    
+    const command = { cmd: 'flash_test' };
+    ws.send(JSON.stringify(command));
+    
+    addLog('🔦 Flash test command sent', 'info');
+    showToast('Flash Test', 'Testing camera flash...', 'info');
+}
+
+function pingCamera() {
+    if (!cameraConnected) {
+        showToast('Camera Error', 'Camera is not connected', 'error');
+        return;
+    }
+    
+    const command = { cmd: 'ping' };
+    ws.send(JSON.stringify(command));
+    
+    addLog('📡 Ping sent to camera', 'info');
+    showToast('Ping', 'Sending ping to camera...', 'info');
+}
+
+function clearGallery() {
+    if (photoCount === 0) return;
+    
+    if (confirm(`Are you sure you want to delete all ${photoCount} photos?`)) {
+        // تحرير جميع الذاكرة
+        photos.forEach(photo => {
+            URL.revokeObjectURL(photo.url);
+        });
+        
+        // إعادة تعيين المتغيرات
+        photos = [];
+        photoCount = 0;
+        
+        // تحديث الواجهة
+        galleryGrid.innerHTML = `
+            <div class="gallery-placeholder" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--gray);">
+                <i class="fas fa-images" style="font-size: 3rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                <h3>No Photos Yet</h3>
+                <p>Click "Capture Photo" to take your first image</p>
+            </div>
+        `;
+        
+        addLog('🗑️ All photos deleted', 'info');
+        updateConnectionStatus();
+        showToast('Gallery Cleared', 'All photos have been deleted', 'success');
+    }
+}
+
+function downloadAll() {
+    if (photoCount === 0) {
+        showToast('No Photos', 'There are no photos to download', 'info');
+        return;
+    }
+    
+    showToast('Preparing Download', 'Creating ZIP file...', 'info');
+    
+    // في حالة حقيقية، هنا ستقوم بإنشاء ZIP من الصور
+    // لكن للتبسيط، سنقوم بتحميل الصورة الأولى فقط كمثال
+    if (photos.length > 0) {
+        const link = document.createElement('a');
+        link.href = photos[0].url;
+        link.download = `photo_${new Date().toISOString().replace(/[:.]/g, '-')}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        addLog('📥 Photo downloaded', 'success');
+    }
+}
+
+function clearLogs() {
+    logsContainer.innerHTML = `
+        <div class="log-entry log-info">
+            <i class="fas fa-info-circle"></i>
+            <span>Logs cleared</span>
+        </div>
+    `;
+}
+
+// تهيئة النظام
+function init() {
+    addLog('System initialized', 'info');
+    connectWebSocket();
+    
+    // تحديث حالة الاتصال كل ثانية
+    setInterval(updateConnectionStatus, 1000);
+    
+    // إرسال ping كل 30 ثانية لإبقاء الاتصال نشطاً
+    setInterval(() => {
+        if (cameraConnected && ws && ws.readyState === WebSocket.OPEN) {
+            pingCamera();
+        }
+    }, 30000);
+}
+
+// بدء التشغيل عند تحميل الصفحة
+document.addEventListener('DOMContentLoaded', init);
+
+// إغلاق المعاينة بالضغط على ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closePreview();
+    }
+});
+
+// تنظيف عند إغلاق الصفحة
+window.addEventListener('beforeunload', () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+    }
+    
+    // تحرير جميع الذاكرة
+    photos.forEach(photo => {
+        URL.revokeObjectURL(photo.url);
+    });
+});
+</script>
+</body>
+</html>

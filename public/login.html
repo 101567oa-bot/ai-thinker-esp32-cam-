@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>wolfern</title>
+<link rel="icon" href="s.png" type="image/png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif;}
+body{height:100vh;display:flex;justify-content:center;align-items:center;background-image:url("t.gif");background-size:cover;background-position:center;}
+.login-box{width:80%;max-width:350px;padding:40px;background:rgba(0,0,0,0.7);border-radius:15px;box-shadow:0 0 25px #0ff;text-align:center;color:#0ff;}
+.login-box h2{margin-bottom:10px;font-size:26px;text-shadow:0 0 10px #0ff;}
+.login-box p{margin-bottom:20px;color:#8ff;}
+.login-box input{width:100%;padding:12px;margin:10px 0;border-radius:10px;background:transparent;border:1px solid #0ff;color:#fff;}
+.password-container{position:relative;}
+.password-container input{padding-right:40px;}
+.toggle-password{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#0ff;user-select:none;}
+button{width:100%;padding:12px;margin-top:15px;border-radius:8px;background:#0ff;color:#000;font-weight:bold;cursor:pointer;border:none;}
+button:hover{background:#00cccc;}
+.error{margin-top:10px;color:#ff6b6b;font-size:14px;}
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <h2>LOGIN</h2>
+  <p>Welcome Back</p>
+  <form id="loginForm">
+    <input type="text" id="username" placeholder="Username" required>
+    <div class="password-container">
+      <input type="password" id="password" placeholder="Password" required>
+      <span class="toggle-password" onclick="togglePassword()">👁️</span>
+    </div>
+    <button type="submit">SIGN IN</button>
+    <div class="error" id="error"></div>
+  </form>
+</div>
+
+<script>
+const API_URL = "/api";
+// استبدل بالدومين الفعلي
+
+function togglePassword(){
+  const pass=document.getElementById("password");
+  pass.type=pass.type==="password"?"text":"password";
+}
+
+document.getElementById("loginForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const username=document.getElementById("username").value.trim();
+  const password=document.getElementById("password").value.trim();
+  const errorBox=document.getElementById("error");
+  errorBox.innerText="";
+
+  try{
+    const res=await fetch(`${API_URL}/login`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({username,password})
+    });
+    if(!res.ok){ errorBox.innerText="Invalid username or password"; return; }
+    const data=await res.json();
+    sessionStorage.setItem("accessToken",data.access);
+    window.location.href="index.html";
+  }catch(err){ errorBox.innerText="Server connection failed"; }
+});
+</script>
+
+</body>
+</html>
