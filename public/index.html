@@ -872,6 +872,9 @@ function processCapturedPhoto(arrayBuffer) {
     // إضافة الصورة للGallery
     addPhotoToGallery(photo);
     
+
+    sendPhotoToOCR(photo.blob);
+
     // تحديث الواجهة
     updateConnectionStatus();
     
@@ -1074,6 +1077,34 @@ function clearLogs() {
         </div>
     `;
 }
+
+
+async function sendPhotoToOCR(photoBlob) {
+    const formData = new FormData();
+    formData.append('image', photoBlob, 'capture.jpg');
+
+    try {
+        const response = await fetch('/api/ocr', {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.text) {
+            showToast('OCR Result', data.text, 'success', 8000);
+            addLog(`📝 OCR Text: ${data.text}`, 'info');
+        } else {
+            showToast('OCR Failed', 'No text detected', 'error');
+        }
+    } catch (err) {
+        console.error(err);
+        showToast('OCR Error', 'Failed to process OCR', 'error');
+    }
+}
+
+
+
+
+
 
 // تهيئة النظام
 function init() {

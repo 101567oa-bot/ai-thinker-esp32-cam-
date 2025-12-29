@@ -26,6 +26,26 @@ app.post("/api/login", (req, res) => {
   res.status(401).json({ error: "Invalid credentials" });
 });
 
+const Tesseract = require('tesseract.js');
+const multer = require('multer');
+const upload = multer(); // لتخزين الصورة مؤقتًا في الذاكرة
+
+// OCR endpoint جديد فقط
+app.post('/api/ocr', upload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "No image provided" });
+
+    Tesseract.recognize(req.file.buffer, 'eng') // أو 'ara' للنصوص العربية
+        .then(({ data: { text } }) => {
+            res.json({ text });
+        })
+        .catch(err => {
+            console.error(err);
+            res.status(500).json({ error: "OCR failed" });
+        });
+});
+
+
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
